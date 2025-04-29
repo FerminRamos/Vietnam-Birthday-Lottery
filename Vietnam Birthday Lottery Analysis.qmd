@@ -32,7 +32,11 @@ lottery1973 <- read_csv(paste0(params$root_folder, "1973-Vietnam-Lottery.csv"))
 ```
 
 
-### Convert datasets to more useful formatting
+
+### For each date, check if draft was conducted
+
+* NOTE ~ For table 1973, Dec. 19th & Feb. 4th both have APN 168. This is a mistake made by the U.S. Selective Service. One of these values should be 068, not 168. *Why this matters?* In 1973, they drafted APN numbers 0-95. Therefore, men born in one of these dates *were* drafted and thus affect the probabilities of being picked based on your birthday. For the purpose of this analysis, we'll treat the dataset "as-is". 
+
 ```{r message=FALSE, warning=FALSE, echo=TRUE}
 library(dplyr)
 library(tidyr)
@@ -84,6 +88,10 @@ lottery1972_draft <- restructure_data(myTibble=lottery1972,
 lottery1973_draft <- restructure_data(myTibble=lottery1973, 
                                       highestCalledAPN=95)
 
+draft_list <- list(l1 = lottery1970_draft,
+                   l2 = lottery1971_draft,
+                   l3 = lottery1972_draft,
+                   l4 = lottery1973_draft)
 ```
 
 
@@ -109,3 +117,104 @@ write_csv(lottery1973_draft,
 ```
 
 
+# Analysis
+A "hit" is when a date has "drafted" as "Y". These are the highest APN's called for each year:
+
+* Table 1970 = 195
+
+* Table 1971 = 125
+
+* Table 1972 = 95
+
+* Table 1973 = 95
+
+### 1. By Month
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+library(purrr)
+library(tibble)
+
+total_days <- sum(map_int(draft_list, nrow))
+
+# Monthly Totals
+getMonthlyStats <- function(my_tibble, my_month){
+  ratio <- list(hit = my_tibble %>% 
+                      filter(drafted == "Y" & month == my_month) %>% 
+                      nrow(),
+                miss = my_tibble %>% 
+                       filter(drafted == "N" & month == my_month) %>% 
+                       nrow())
+  return(ratio)
+}
+
+months <- c("Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+monthlyStats <- map(months, 
+                function(m) map(draft_list, ~ getMonthlyStats(.x, m)))
+names(monthlyStats) <- months  # Rename outer-list to month names
+
+# Transpose to a more natural data hierarchy: monthlyStats$l1$Jan$hit
+monthlyStats <- transpose(monthlyStats)
+names(monthlyStats) <- names(draft_list)
+
+```
+
+Raw data (before plotting)
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+# Flatten nested structure into an organized data frame
+monthlyStats_df <- map2_dfr(monthlyStats, 
+                       names(monthlyStats), 
+                       function(dataset, dataset_name) {
+                          map2_dfr(dataset, 
+                                   names(dataset), 
+                                   function(stat, month_name) {
+                                       tibble(
+                                         dataset = recode(dataset_name,
+                                                          l1 = "Lottery 1970",
+                                                          l2 = "Lottery 1971",
+                                                          l3 = "Lottery 1972",
+                                                          l4 = "Lottery 1973"),
+                                         month = month_name,
+                                         hit = stat$hit,
+                                         miss = stat$miss
+    )
+  })
+})
+
+monthlyStats_df
+
+```
+
+#### Plots - By Month
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+library(ggplot2)
+
+# Grid Layout
+monthlyStats_df %>%
+  mutate(month = factor(month, levels = months)) %>%  # Set calendar order
+  pivot_longer(cols = c(hit, miss), 
+               names_to = "type", 
+               values_to = "count") %>%
+  ggplot(aes(x = month, 
+             y = count, 
+             fill = type)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ dataset) +
+  labs(title = "Hits and Misses per Month by Dataset", 
+       x = "Month", y = "Count") +
+  theme_minimal()
+
+# Stacked
+monthlyStats_df %>%
+  mutate(month = factor(month, levels = months)) %>%
+  pivot_longer(cols = c(hit, miss), names_to = "type", values_to = "count") %>%
+  ggplot(aes(x = month, y = count, fill = type)) +
+  geom_col(position = "dodge") +
+  facet_grid(rows = vars(dataset)) +  # Use rows to repeat x-axis for each
+  labs(title = "Hits and Misses per Month by Dataset", 
+       x = "Month", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
