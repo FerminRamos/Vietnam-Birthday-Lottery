@@ -1,0 +1,111 @@
+---
+title: "Vietnam Birthday Lottery Analysis"
+author: "Fermin Ramos"
+date: 04-24-2025
+description: |
+  [GitHub Repository](https://github.com/FerminRamos/Vietnam-Birthday-Lottery/tree/main), This repository analyses the likelihood of someone being selected for the Vietnam Draft based on their birthday.
+params:
+  root_folder: "/Users/speak_easy/R-Studio/Vietnam Birthday Lottery/Datasets/CSV/"
+format:
+  html:
+    theme:                  litera
+    highlight-style:        atom-one
+    page-layout:            full      # article, full   # https://quarto.org/docs/output-formats/page-layout.html
+    toc:                    true
+    toc-location:           body  # body, left, right
+    number-sections:        false
+    self-contained:         false     # !!! this can cause a render error
+    code-overflow:          scroll    # scroll, wrap
+    code-block-bg:          true
+    code-block-border-left: "#30B0E0"
+    code-copy:              false     # true, false, hover a copy buttom in top-right of code block
+---
+### Read datasets
+```{r message=FALSE, warning=FALSE, echo=TRUE}
+# Read datasets
+library(readr)
+
+lottery1970 <- read_csv(paste0(params$root_folder, "1970-Vietnam-Lottery.csv"))
+lottery1971 <- read_csv(paste0(params$root_folder, "1971-Vietnam-Lottery.csv"))
+lottery1972 <- read_csv(paste0(params$root_folder, "1972-Vietnam-Lottery.csv"))
+lottery1973 <- read_csv(paste0(params$root_folder, "1973-Vietnam-Lottery.csv"))
+```
+
+
+### Convert datasets to more useful formatting
+```{r message=FALSE, warning=FALSE, echo=TRUE}
+library(dplyr)
+library(tidyr)
+
+# Convert all columns *except Day* to char data type to avoid errors
+cols_to_char <- function(myTibble){
+  return(myTibble %>% mutate(across(-Day, as.character)))
+}
+
+lottery1970 <- cols_to_char(lottery1970)
+lottery1971 <- cols_to_char(lottery1971)
+lottery1972 <- cols_to_char(lottery1972)
+lottery1973 <- cols_to_char(lottery1973)
+
+
+# Reformat data as:
+#  day, month, year, apn, drafted (y/n)
+wasDrafted <- function(apn, highestAPN){
+  if(as.integer(apn) <= highestAPN){
+    return("Y")
+  }
+  return("N")
+}
+
+restructure_data <- function(myTibble, highestCalledAPN){
+  data <- myTibble %>%
+                     pivot_longer(
+                       cols = -Day, # "Day" stays as-is; rest are month columns
+                       names_to = "month",
+                       values_to = "apn"
+                     ) %>%
+                     filter(apn != "----", !is.na(apn)) %>%
+                     mutate(
+                       year = "1970",
+                       drafted = sapply(apn, 
+                                        wasDrafted, 
+                                        highestAPN = highestCalledAPN)
+                      ) %>%
+                      select(day=Day, month, year, apn, drafted)
+  return(data)
+}
+
+lottery1970_draft <- restructure_data(myTibble=lottery1970, 
+                                      highestCalledAPN=195)
+lottery1971_draft <- restructure_data(myTibble=lottery1971, 
+                                      highestCalledAPN=125)
+lottery1972_draft <- restructure_data(myTibble=lottery1972, 
+                                      highestCalledAPN=95)
+lottery1973_draft <- restructure_data(myTibble=lottery1973, 
+                                      highestCalledAPN=95)
+
+```
+
+
+### Write new datasets (optional)
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=FALSE}
+# Write new datasets to CSV
+write_csv(lottery1970_draft,
+          paste0(params$root_folder, 
+                 "Include Draft Status/", 
+                 "1970-Vietnam-Lottery.csv"))
+write_csv(lottery1971_draft,
+          paste0(params$root_folder, 
+                 "Include Draft Status/", 
+                 "1971-Vietnam-Lottery.csv"))
+write_csv(lottery1972_draft,
+          paste0(params$root_folder, 
+                 "Include Draft Status/", 
+                 "1972-Vietnam-Lottery.csv"))
+write_csv(lottery1973_draft,
+          paste0(params$root_folder, 
+                 "Include Draft Status/", 
+                 "1973-Vietnam-Lottery.csv"))
+```
+
+
