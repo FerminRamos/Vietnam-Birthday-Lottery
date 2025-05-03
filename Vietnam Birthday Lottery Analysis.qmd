@@ -128,7 +128,9 @@ A "hit" is when a date has "drafted" as "Y". These are the highest APN's called 
 
 * Table 1973 = 95
 
-### 1. By Month
+## 1. By Month
+
+Re-organize the data into monthly categories with counts of hits/misses per month.
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(purrr)
 library(tibble)
@@ -157,10 +159,6 @@ names(monthlyStats) <- months  # Rename outer-list to month names
 monthlyStats <- transpose(monthlyStats)
 names(monthlyStats) <- names(draft_list)
 
-```
-
-Raw data (before plotting)
-```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 # Flatten nested structure into an organized data frame
 monthlyStats_df <- map2_dfr(monthlyStats, 
                        names(monthlyStats), 
@@ -182,10 +180,9 @@ monthlyStats_df <- map2_dfr(monthlyStats,
 })
 
 monthlyStats_df
-
 ```
 
-#### Plots - By Month
+### (plot) Per Month, By Dataset
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(ggplot2)
 
@@ -205,16 +202,237 @@ monthlyStats_df %>%
   theme_minimal()
 
 # Stacked
-monthlyStats_df %>%
-  mutate(month = factor(month, levels = months)) %>%
-  pivot_longer(cols = c(hit, miss), names_to = "type", values_to = "count") %>%
-  ggplot(aes(x = month, y = count, fill = type)) +
-  geom_col(position = "dodge") +
-  facet_grid(rows = vars(dataset)) +  # Use rows to repeat x-axis for each
-  labs(title = "Hits and Misses per Month by Dataset", 
-       x = "Month", y = "Count") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
+# monthlyStats_df %>%
+#   mutate(month = factor(month, levels = months)) %>%
+#   pivot_longer(cols = c(hit, miss), names_to = "type", values_to = "count") %>%
+#   ggplot(aes(x = month, y = count, fill = type)) +
+#   geom_col(position = "dodge") +
+#   facet_grid(rows = vars(dataset)) +  # Use rows to repeat x-axis for each
+#   labs(title = "Hits and Misses per Month by Dataset", 
+#        x = "Month", y = "Count") +
+#   theme_minimal() +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
+
+
+### (plot) Compiled Per Month
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+# Summarize across datasets
+monthlyStats_Summary <- monthlyStats_df %>%
+  group_by(month) %>%
+  summarise(
+    hit = sum(hit),
+    miss = sum(miss),
+    .groups = "drop"
+  ) %>%
+  mutate(month = factor(month, levels = months))
+monthlyStats_Summary
+
+monthlyStats_Summary %>% 
+  pivot_longer(cols = c(hit, miss), names_to = "type", values_to = "count") %>% 
+  ggplot(aes(x = month, y = count, fill = type)) + 
+  geom_col(position = "dodge") +
+  labs(title = "Total Hits and Misses per Month",
+       x = "Month", y = "Count") +
+  theme_minimal()
+
+```
+
+
+
+## 1a. What month was best to have been born?
+### In General, months with more days = Higher chances that someone else gets picked.
+
+[INSERT DIAGRAM]
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
+library(ggplot2)
+
+#
+# Iteration 1
+#
+
+# Create a data frame with boxes with format:
+#  1 4 7 
+#  2 5 8
+#  3 6 9
+boxes <- data.frame(
+  x = rep(1:14, each = 5)[1:70],  # Num of columns, each per column.
+  y = rep(5:1, times = 14)[1:70],  # Num of rows, times per column.
+  group = "Small Month"  # Give boxes a group name
+)
+
+# Mark specific boxes as "highlighted" or "empty"
+highlight_days <- 36:70
+boxes$group[highlight_days] <- "Big Month"
+
+highlight_days <- c(15, 20, 25, 30, 35,
+                    55, 60, 65, 70)
+boxes$group[highlight_days] <- "Empty"
+
+# Plot with group-based fill
+ggplot(boxes, aes(x = x, y = y, fill = group)) +
+  geom_tile(color = "black") +
+  scale_fill_manual(values = c("Small Month" = "lightblue", 
+                               "Big Month" = "lightgreen",
+                               "Empty" = "white")) +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  coord_fixed() +
+  theme_void()
+
+#
+# Iteration 2
+#
+
+# Create a data frame with boxes
+boxes <- data.frame(
+  x = rep(1:14, each = 10)[1:140],  # Num of columns, each per column.
+  y = rep(10:1, times = 14)[1:140],  # Num of rows, times per column.
+  group = "Small Month"  # Give boxes a group name
+)
+
+# Mark specific boxes as "highlighted" or "empty"
+highlight_days <- 71:140
+boxes$group[highlight_days] <- "Big Month"
+
+highlight_days <- c(10, 20, 30, 40, 50, 60, 70,
+                    49, 59, 69,
+                    80, 90, 100, 110, 120, 130, 140,
+                    139)
+boxes$group[highlight_days] <- "Empty"
+
+# Plot with group-based fill
+ggplot(boxes, aes(x = x, y = y, fill = group)) +
+  geom_tile(color = "black") +
+  scale_fill_manual(values = c("Small Month" = "lightblue", 
+                               "Big Month" = "lightgreen",
+                               "Empty" = "white")) +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  coord_fixed() +
+  theme_void()
+
+
+#
+# Iteration 3
+#
+
+# Create a data frame with boxes
+boxes <- data.frame(
+  x = rep(1:14, each = 15)[1:210],  # Num of columns, each per column.
+  y = rep(15:1, times = 14)[1:210],  # Num of rows, times per column.
+  group = "Small Month"  # Give boxes a group name
+)
+
+# Mark specific boxes as "highlighted" or "empty"
+highlight_days <- 106:210
+boxes$group[highlight_days] <- "Big Month"
+
+highlight_days <- c(103,
+                    14, 29, 44, 59, 74, 89, 104,
+                    15, 30, 45, 60, 75, 90, 105,
+                    149, 164, 179, 194, 209,
+                    120, 135, 150, 165, 180, 195, 210)
+boxes$group[highlight_days] <- "Empty"
+
+# Plot with group-based fill
+ggplot(boxes, aes(x = x, y = y, fill = group)) +
+  geom_tile(color = "black") +
+  scale_fill_manual(values = c("Small Month" = "lightblue", 
+                               "Big Month" = "lightgreen",
+                               "Empty" = "white")) +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  coord_fixed() +
+  theme_void()
+
+
+#
+# Iteration 4
+#
+
+# Create a data frame with boxes
+boxes <- data.frame(
+  x = rep(1:14, each = 20)[1:280],  # Num of columns, each per column.
+  y = rep(20:1, times = 14)[1:280],  # Num of rows, times per column.
+  group = "Small Month"  # Give boxes a group name
+)
+
+# Mark specific boxes as "highlighted" or "empty"
+highlight_days <- 141:280
+boxes$group[highlight_days] <- "Big Month"
+
+highlight_days <- c(38, 58, 78, 98, 118, 138,
+                    19, 39, 59, 79, 99, 119, 139,
+                    20, 40, 60, 80, 100, 120, 140,
+                    258, 278,
+                    159, 179, 199, 219, 239, 259, 279,
+                    160, 180, 200, 220, 240, 260, 280)
+boxes$group[highlight_days] <- "Empty"
+
+# Plot with group-based fill
+ggplot(boxes, aes(x = x, y = y, fill = group)) +
+  geom_tile(color = "black") +
+  scale_fill_manual(values = c("Small Month" = "lightblue", 
+                               "Big Month" = "lightgreen",
+                               "Empty" = "white")) +
+  scale_x_continuous(breaks = NULL) +
+  scale_y_continuous(breaks = NULL) +
+  coord_fixed() +
+  theme_void()
+
+```
+
+
+
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+ms_total_days <- monthlyStats_Summary %>% group_by(month) %>% summarise(total_days = sum(hit) + sum(miss))
+
+
+draft_prob <- function(my_month) {
+  p <- round((monthlyStats_Summary %>% 
+                           filter(month == my_month) %>% 
+                           pull(hit)) / 
+                        (ms_total_days %>% 
+                           filter(month == my_month) %>% 
+                           pull(total_days)), 3) * 100 
+  return(p)
+}
+# feb_draft_prob <- draft_prob("Feb")
+
+```
+
+* Since `Feb` has the least number of days, with ``r ms_total_days %>% filter(month == "Feb") %>% pull(total_days)`` days. Individuals born in `Feb`, are ``r draft_prob("Feb")``% likely to be drafted. 
+
+* On the contrary, since `Dec` has one of the most number of days, with ``r ms_total_days %>% filter(month == "Dec") %>% pull(total_days)`` days. Individuals born in `Dec` are ``r draft_prob("Dec")``% likely to be drafted. 
+
+Here's a breakdown of the probability for each month:
+
+1. Jan - ``r draft_prob("Jan")``%
+
+2. Feb - ``r draft_prob("Feb")``%
+
+3. Mar - ``r draft_prob("Mar")``%
+
+4. Apr - ``r draft_prob("Apr")``%
+
+5. May - ``r draft_prob("May")``%
+
+6. Jun - ``r draft_prob("Jun")``%
+
+7. Jul - ``r draft_prob("Jul")``%
+
+8. Aug - ``r draft_prob("Aug")``%
+
+9. Sep - ``r draft_prob("Sep")``%
+
+10. Oct - ``r draft_prob("Oct")``%
+
+11. Nov - ``r draft_prob("Nov")``%
+
+12. Dec - ``r draft_prob("Dec")``%
+
+
+### 
+
