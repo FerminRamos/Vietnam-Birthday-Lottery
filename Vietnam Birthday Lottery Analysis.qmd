@@ -134,6 +134,7 @@ Re-organize the data into monthly categories with counts of hits/misses per mont
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(purrr)
 library(tibble)
+library(dplyr)
 
 total_days <- sum(map_int(draft_list, nrow))
 
@@ -179,10 +180,16 @@ monthlyStats_df <- map2_dfr(monthlyStats,
   })
 })
 
+
+# Add hit ratio column to data frame
+monthlyStats_df <- monthlyStats_df %>%
+  mutate(hit_ratio = hit / (hit + miss))
+
+
 monthlyStats_df
 ```
 
-### (plot) Per Month, By Dataset
+### (plot) Hit/Miss Per Month, By Dataset
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(ggplot2)
 
@@ -201,23 +208,31 @@ monthlyStats_df %>%
        x = "Month", y = "Count") +
   theme_minimal()
 
-# Stacked
-# monthlyStats_df %>%
-#   mutate(month = factor(month, levels = months)) %>%
-#   pivot_longer(cols = c(hit, miss), names_to = "type", values_to = "count") %>%
-#   ggplot(aes(x = month, y = count, fill = type)) +
-#   geom_col(position = "dodge") +
-#   facet_grid(rows = vars(dataset)) +  # Use rows to repeat x-axis for each
-#   labs(title = "Hits and Misses per Month by Dataset", 
-#        x = "Month", y = "Count") +
-#   theme_minimal() +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+### (plot) Ratio Per Month, By Dataset
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+library(ggplot2)
+
+# Grid Layout
+monthlyStats_df %>%
+  mutate(month = factor(month, levels = months)) %>%  # Set calendar order
+  ggplot(aes(x = month, 
+             y = hit_ratio, 
+             fill = month)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ dataset) +
+  labs(title = "Hits and Misses Ratio per Month by Dataset", 
+       x = "Month", y = "Ratio") +
+  theme_minimal()
 
 ```
 
 
-### (plot) Compiled Per Month
+### (plot) Hit/Miss Compiled Per Month
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+library(ggplot2)
+
 # Summarize across datasets
 monthlyStats_Summary <- monthlyStats_df %>%
   group_by(month) %>%
@@ -227,8 +242,14 @@ monthlyStats_Summary <- monthlyStats_df %>%
     .groups = "drop"
   ) %>%
   mutate(month = factor(month, levels = months))
+
+# Add hit ratio column to data frame
+monthlyStats_Summary <- monthlyStats_Summary %>%
+  mutate(hit_ratio = hit / (hit + miss))
+
 monthlyStats_Summary
 
+# Plot
 monthlyStats_Summary %>% 
   pivot_longer(cols = c(hit, miss), names_to = "type", values_to = "count") %>% 
   ggplot(aes(x = month, y = count, fill = type)) + 
@@ -240,11 +261,27 @@ monthlyStats_Summary %>%
 ```
 
 
+### (plot) Hit/Miss Ratio Compiled Per Month
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+library(ggplot2)
 
-## 1a. What month was best to have been born?
-### In General, months with more days = Higher chances that someone else gets picked.
+# Plot
+ggplot(monthlyStats_Summary, aes(x = month, y = hit_ratio, fill = month)) + 
+  geom_col(position = "dodge") +
+  labs(
+    title = "Monthly Draft Hit Ratios by Dataset",
+    x = "Month",
+    y = "Hit Ratio"
+  ) +
+  theme_minimal()
 
-[INSERT DIAGRAM]
+```
+
+
+## What month was best to have been born?
+### Do months with more days lead to higher chances that someone else gets picked?
+
+*Below is a visual comparing a month with 30 days (small month) vs. a month with 31 days (big month) over the course of 4 years.*
 ```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
 library(ggplot2)
 
@@ -281,6 +318,8 @@ ggplot(boxes, aes(x = x, y = y, fill = group)) +
   coord_fixed() +
   theme_void()
 
+```
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
 #
 # Iteration 2
 #
@@ -313,7 +352,8 @@ ggplot(boxes, aes(x = x, y = y, fill = group)) +
   coord_fixed() +
   theme_void()
 
-
+```
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
 #
 # Iteration 3
 #
@@ -347,7 +387,8 @@ ggplot(boxes, aes(x = x, y = y, fill = group)) +
   coord_fixed() +
   theme_void()
 
-
+```
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
 #
 # Iteration 4
 #
@@ -384,7 +425,14 @@ ggplot(boxes, aes(x = x, y = y, fill = group)) +
 
 ```
 
+By the 4th year, a month with more days (big month) accumulated more days. This small change accounts for a slight edge over the smaller months, reducing the probability of being selected from ``r round((1/120)*100, 3)``% to ``r round((1/124)*100, 3)``%
 
+*But is this `< 1`% discrepancy enough of an edge to say that larger months are best to have been born?...*
+
+No! See next section...
+
+
+### December (one of the biggest months) is the worst month to have been born.
 
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 ms_total_days <- monthlyStats_Summary %>% group_by(month) %>% summarise(total_days = sum(hit) + sum(miss))
@@ -403,11 +451,11 @@ draft_prob <- function(my_month) {
 
 ```
 
-* Since `Feb` has the least number of days, with ``r ms_total_days %>% filter(month == "Feb") %>% pull(total_days)`` days. Individuals born in `Feb`, are ``r draft_prob("Feb")``% likely to be drafted. 
+* Since `Feb` has the *least* number of days, with ``r ms_total_days %>% filter(month == "Feb") %>% pull(total_days)`` days. The probability of being drafted for a `Feb` birth date is ``r draft_prob("Feb")``%.
 
-* On the contrary, since `Dec` has one of the most number of days, with ``r ms_total_days %>% filter(month == "Dec") %>% pull(total_days)`` days. Individuals born in `Dec` are ``r draft_prob("Dec")``% likely to be drafted. 
+* Since `Dec` has one of the *most* number of days, with ``r ms_total_days %>% filter(month == "Dec") %>% pull(total_days)`` days. The probability of being drafted for a `Dec` birth date is ``r draft_prob("Dec")``%.
 
-Here's a breakdown of the probability for each month:
+Here's a breakdown of the probabilities for each month:
 
 1. Jan - ``r draft_prob("Jan")``%
 
@@ -434,5 +482,65 @@ Here's a breakdown of the probability for each month:
 12. Dec - ``r draft_prob("Dec")``%
 
 
-### 
+### The best type of month to have been born in is a small month.
+
+We can split each of these months into 2 categories - `small months` and `large months` - to see which "type" of month would have been best to have been born. 
+
+* A small month would be any month with 30 or less days. 
+
+* A large month would be any month with exactly 31 days.
+
+| Small Month | sm_prob | Large Month | lm_prob |
+| :---------: | :-----: | :---------: | :-----: |
+| Feb | `r draft_prob("Feb")`% | Jan | `r draft_prob("Jan")`% |
+| Apr | `r draft_prob("Apr")`% | Mar | `r draft_prob("Mar")`% |
+| Jun | `r draft_prob("Jun")`% | May | `r draft_prob("May")`% |
+| Sep | `r draft_prob("Sep")`% | Jul | `r draft_prob("Jul")`% |
+| Nov | `r draft_prob("Nov")`% | Aug | `r draft_prob("Aug")`% | 
+|     |       | Oct | `r draft_prob("Oct")`% |
+|     |       | Dec | `r draft_prob("Dec")`% |
+
+
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+library(ggplot2)
+library(tibble)
+
+sm_prob <- round((draft_prob("Feb") + 
+                   draft_prob("Apr") +
+                   draft_prob("Jun") + 
+                   draft_prob("Sep") + 
+                   draft_prob("Nov")) / 5, 3)
+lm_prob <- round((draft_prob("Jan") + 
+           draft_prob("Mar") +
+           draft_prob("May") + 
+           draft_prob("Jul") + 
+           draft_prob("Aug") + 
+           draft_prob("Oct") + 
+           draft_prob("Dec")) / 7, 3)
+
+# Create a tibble to visualize results
+month_size_probs <- tibble(
+  Month_Size = c("Small Months", "Large Months"),
+  Avg_Probability = c(sm_prob, lm_prob)
+)
+
+ggplot(month_size_probs, 
+       aes(x = Month_Size, y = Avg_Probability, fill = Month_Size)) +
+  geom_col(width = 0.6) +
+  labs(
+    title = "Average Draft Probability by Month Size",
+    x = "Month Types",
+    y = "Average Draft Probability"
+  ) +
+  theme_minimal()
+
+```
+
+Contrary to popular believe, the data shows us that `Small Months` are, in fact, slightly better to have been born in for the 1970-1973 draft lotteries, since they averaged ``r lm_prob-sm_prob``% lower draft rates than their counter-parts. 
+
+In fact, `Feb` had the 2nd lowest draft rate, coming in at ``r draft_prob("Feb")``%. Even though it only has 28 days!
+
+
+### The best month is March.
+
 
