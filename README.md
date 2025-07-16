@@ -17,3 +17,38 @@ During the Vietnam War, a lottery based on birth dates was conducted by the U.S.
 * March 20, 1975 – For men born in 1956 (leap-year).
 
 RAW Data from the Selected Service Website: [https://www.sss.gov/history-and-records/vietnam-lotteries](https://www.sss.gov/history-and-records/vietnam-lotteries/)
+
+
+<br>
+
+## Understanding the Data
+A “hit” is when a date has “drafted” as “Y”. Every day is randomly marked with a number 1-365. If a draft is needed, the government would select the date with the number 1, then the date with the number 2, and so on. Not all dates were selected for the draft. The highest number called each year is the APN. These are the highest APN’s called for each year:
+
+Table 1970 = 195
+
+Table 1971 = 125
+
+Table 1972 = 95
+
+Table 1973 = 95
+
+
+<br>
+
+## The Best Month to have been born in is March.
+![Monthly Draft Hit Ratios by Dataset](https://github.com/FerminRamos/Vietnam-Birthday-Lottery/blob/main/Graphics/Monthly%20Draft%20Hit%20Ratios%20by%20Dataset.png)
+
+March has a hit rate of only `27.4%`, with it's lowest hit rate coming from the 1972 lottery, featuring the second lowest draft rate of only `9.7%`.
+
+## The Worst Month to have been born in is December.
+![Monthly Draft Hit Ratios by Dataset](https://github.com/FerminRamos/Vietnam-Birthday-Lottery/blob/main/Graphics/Monthly%20Draft%20Hit%20Ratios%20by%20Dataset.png)
+
+December has a hit rate of `43.5%`, with it's highest hit rate coming from the 1970 lottery, featuring the highest draft rate of `83.9%`.
+
+## Smaller Months Had a Slight Edge Over Larger Months.
+![Avg Draft Prob by Month Size](https://github.com/FerminRamos/Vietnam-Birthday-Lottery/blob/main/Graphics/Avg%20Draft%20Prob%20by%20Month%20Size.png)
+
+Contrary to popular belief, smaller months actually performed better than larger months. Smaller months averaged `1.42%` lower draft rates compared to their counter-parts.
+
+## Full Graphic
+![Hits and Misses Complete](https://github.com/FerminRamos/Vietnam-Birthday-Lottery/blob/main/Graphics/Hits%20and%20Misses%20Complete.png)
