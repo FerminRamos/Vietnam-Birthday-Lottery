@@ -187,6 +187,15 @@ monthlyStats_df <- monthlyStats_df %>%
 monthlyStats_df
 ```
 
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
+#
+# Optional: Write monthlyStats_df to a csv file.
+#
+
+write.csv(monthlyStats_df, "monthlyStats_df.csv", row.names = FALSE)
+
+```
+
 ### (plot) Hit/Miss Complete
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(ggplot2)
@@ -589,4 +598,3 @@ ggplot(monthlyStats_Summary, aes(x = month, y = hit_ratio, fill = month)) +
   ) +
   theme_minimal()
 ```
-
