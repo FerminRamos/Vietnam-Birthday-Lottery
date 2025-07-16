@@ -117,8 +117,8 @@ write_csv(lottery1973_draft,
 ```
 
 
-# Analysis
-A "hit" is when a date has "drafted" as "Y". These are the highest APN's called for each year:
+# Understanding The Data
+A "hit" is when a date has "drafted" as "Y". Every day is randomly marked with a number 1-365. If a draft is needed, the government would select the date with the number 1, then the date with the number 2, and so on. Not all dates were selected for the draft. The highest number called each year is the APN. These are the highest APN's called for each year:
 
 * Table 1970 = 195
 
@@ -128,10 +128,8 @@ A "hit" is when a date has "drafted" as "Y". These are the highest APN's called 
 
 * Table 1973 = 95
 
-## 1. By Month
-
-Re-organize the data into monthly categories with counts of hits/misses per month.
-```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+Let's re-organize the data into yearly categories with counts of hits/misses per month.
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
 library(purrr)
 library(tibble)
 library(dplyr)
@@ -189,7 +187,7 @@ monthlyStats_df <- monthlyStats_df %>%
 monthlyStats_df
 ```
 
-### (plot) Hit/Miss Per Month, By Dataset
+### (plot) Hit/Miss Complete
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(ggplot2)
 
@@ -210,7 +208,7 @@ monthlyStats_df %>%
 
 ```
 
-### (plot) Ratio Per Month, By Dataset
+### (plot) Ratio Complete
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(ggplot2)
 
@@ -229,8 +227,9 @@ monthlyStats_df %>%
 ```
 
 
-### (plot) Hit/Miss Compiled Per Month
-```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+## Recompile data to be split into Months instead of years.
+This will let us figure out what month is best to have been born in.
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
 library(ggplot2)
 
 # Summarize across datasets
@@ -249,6 +248,10 @@ monthlyStats_Summary <- monthlyStats_Summary %>%
 
 monthlyStats_Summary
 
+```
+
+### (plot) Hit/Miss Per Month
+```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 # Plot
 monthlyStats_Summary %>% 
   pivot_longer(cols = c(hit, miss), names_to = "type", values_to = "count") %>% 
@@ -261,7 +264,7 @@ monthlyStats_Summary %>%
 ```
 
 
-### (plot) Hit/Miss Ratio Compiled Per Month
+### (plot) Hit/Miss Ratio Per Month
 ```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
 library(ggplot2)
 
@@ -272,14 +275,15 @@ ggplot(monthlyStats_Summary, aes(x = month, y = hit_ratio, fill = month)) +
     title = "Monthly Draft Hit Ratios by Dataset",
     x = "Month",
     y = "Hit Ratio"
-  ) +
+  ) + 
   theme_minimal()
 
 ```
 
 
-## What month was best to have been born?
+# What month was best to have been born?
 ### Do months with more days lead to higher chances that someone else gets picked?
+Let's investigate this common belief...
 
 *Below is a visual comparing a month with 30 days (small month) vs. a month with 31 days (big month) over the course of 4 years.*
 ```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
@@ -433,8 +437,31 @@ No! See next section...
 
 
 ### December (one of the biggest months) is the worst month to have been born.
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
+library(ggplot2)
+library(forcats)
 
-```{r message=FALSE, warning=FALSE, echo=TRUE, eval=TRUE}
+# Reorganize months based on hit-ratio column
+monthlyStats_Summary <- monthlyStats_Summary %>%
+  mutate(month = fct_reorder(month, hit_ratio, .desc = TRUE))
+
+# Plot
+ggplot(monthlyStats_Summary, aes(x = month, y = hit_ratio, fill = month)) + 
+  geom_col(position = "dodge") +
+  labs(
+    title = "Monthly Draft Hit Ratios by Dataset",
+    x = "Month",
+    y = "Hit Ratio"
+  ) +
+  theme(legend.position = "none") +
+  theme_minimal()
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
+#
+# Calculates draft probability for a given function. 
+#
+
 ms_total_days <- monthlyStats_Summary %>% group_by(month) %>% summarise(total_days = sum(hit) + sum(miss))
 
 
@@ -451,9 +478,9 @@ draft_prob <- function(my_month) {
 
 ```
 
-* Since `Feb` has the *least* number of days, with ``r ms_total_days %>% filter(month == "Feb") %>% pull(total_days)`` days. The probability of being drafted for a `Feb` birth date is ``r draft_prob("Feb")``%.
-
 * Since `Dec` has one of the *most* number of days, with ``r ms_total_days %>% filter(month == "Dec") %>% pull(total_days)`` days. The probability of being drafted for a `Dec` birth date is ``r draft_prob("Dec")``%.
+
+* Since `Feb` has the *least* number of days, with ``r ms_total_days %>% filter(month == "Feb") %>% pull(total_days)`` days. The probability of being drafted for a `Feb` birth date is ``r draft_prob("Feb")``%.
 
 Here's a breakdown of the probabilities for each month:
 
@@ -540,7 +567,26 @@ Contrary to popular believe, the data shows us that `Small Months` are, in fact,
 
 In fact, `Feb` had the 2nd lowest draft rate, coming in at ``r draft_prob("Feb")``%. Even though it only has 28 days!
 
+*Note that Feb 4th is a potential false positive (see above under "For each date, check if draft was conducted")*
+
 
 ### The best month is March.
+```{r message=FALSE, warning=FALSE, echo=FALSE, eval=TRUE}
+library(ggplot2)
+library(forcats)
 
+# Reorganize months based on hit-ratio column
+monthlyStats_Summary <- monthlyStats_Summary %>%
+  mutate(month = fct_reorder(month, hit_ratio, .desc = FALSE))
+
+# Plot
+ggplot(monthlyStats_Summary, aes(x = month, y = hit_ratio, fill = month)) + 
+  geom_col(position = "dodge") +
+  labs(
+    title = "Monthly Draft Hit Ratios by Dataset",
+    x = "Month",
+    y = "Hit Ratio"
+  ) +
+  theme_minimal()
+```
 
