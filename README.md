@@ -3,6 +3,10 @@ During the Vietnam War, a lottery based on birth dates was conducted by the U.S.
 
 <br>
 
+Interactive Tableau Dashboard: [Vietnam War Birthday Lotteries](https://public.tableau.com/app/profile/fermin.ramos/viz/VietnamWarBirthdayLotteries/Dashboard1)
+
+<br>
+
 ## The Vietnam Lotteries
 ***The United States conducted seven draft lotteries for the Vietnam War between 1969 and 1975:***
 ### Drafted
